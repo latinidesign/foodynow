@@ -7,3 +7,12 @@ export async function getServerSideProps({ params }) {
 
   return { props: { merchant } };
 }
+
+export default function MerchantPage({ merchant }) {
+  return (
+    <div>
+      <h1>{merchant.name}</h1>
+      <p>{merchant.description}</p>
+    </div>
+  );
+}

@@ -1,6 +1,11 @@
-// Configuration for Comercio Juan
+// config/juan-pizza.js
 export default {
   siteName: 'Comercio Juan',
-  currency: 'EUR',
-  language: 'es',
+  themeColor: '#FF5733',
+  currency: 'ARS',
+  logo: '/assets/images/juan-logo.png',
 };
+
+
+//  siteName: 'Comercio Juan',
+
