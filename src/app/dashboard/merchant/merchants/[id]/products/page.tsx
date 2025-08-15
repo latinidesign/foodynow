@@ -10,11 +10,12 @@ type Product = {
 }
 
 export default function ProductList() {
-  const params = useParams()
-  const merchantId = params.id
+  const params = useParams<{ id: string }>()
+  const merchantId = params?.id
   const [products, setProducts] = useState<Product[]>([])
 
   useEffect(() => {
+    if (!merchantId) return
     const fetchProducts = async () => {
       const { data } = await supabase
         .from('products')

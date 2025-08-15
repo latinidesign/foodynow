@@ -3,8 +3,8 @@ import Link from 'next/link'
 import { useParams } from 'next/navigation'
 
 export default function MerchantDetail() {
-  const params = useParams()
-  const merchantId = params.id
+  const params = useParams<{ id: string }>()
+  const merchantId = params?.id ?? ''
 
   return (
     <div className="p-6">

@@ -4,14 +4,15 @@ import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 
 export default function CreateProduct() {
-  const params = useParams()
-  const merchantId = params.id
+  const params = useParams<{ id: string }>()
+  const merchantId = params?.id
   const router = useRouter()
 
   const [name, setName] = useState('')
   const [price, setPrice] = useState<number>(0)
 
   const handleCreate = async () => {
+    if (!merchantId) return
     await supabase.from('products').insert({
       merchant_id: merchantId,
       name,
@@ -39,6 +40,7 @@ export default function CreateProduct() {
       <button
         onClick={handleCreate}
         className="bg-green-500 text-white px-4 py-2"
+        disabled={!merchantId}
       >
         Crear Producto
       </button>
