@@ -1,27 +1,28 @@
-'use client'
-import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabaseClient'
-import Link from 'next/link'
+"use client";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
+import Link from "next/link";
 
 type Merchant = {
-  id: string
-  name: string
-  slug: string
-}
+  id: string;
+  name: string;
+  slug: string;
+};
 
 export default function MerchantList() {
-  const [merchants, setMerchants] = useState<Merchant[]>([])
+  const [merchants, setMerchants] = useState<Merchant[]>([]);
 
   useEffect(() => {
     const fetchMerchants = async () => {
-      const { data, error } = await supabase
-        .from('merchants')
-        .select('id,name,slug')
-      if (data) setMerchants(data)
-    }
+      const { data, error } = await supabase.from("merchants").select("id,name,slug");
+      if (error) {
+        console.error("Error fetching merchants:", error);
+      }
+      if (data) setMerchants(data);
+    };
 
-    fetchMerchants()
-  }, [])
+    fetchMerchants();
+  }, []);
 
   return (
     <div className="p-6">
@@ -36,5 +37,5 @@ export default function MerchantList() {
         ))}
       </ul>
     </div>
-  )
+  );
 }
