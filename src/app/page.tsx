@@ -4,6 +4,10 @@ import NavBar from '@/components/NavBar'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 
+// Tipos de filas devueltas por Supabase
+type CityRow = { city: string | null }
+type CategoryRow = { category: string | null }
+
 export default function Home() {
   const [cities, setCities] = useState<string[]>([])
   const [categories, setCategories] = useState<string[]>([])
@@ -26,8 +30,20 @@ export default function Home() {
         .select('category')
         .not('category', 'is', null)
 
-      if (cityData) setCities([...new Set(cityData.map((c: any) => c.city))])
-      if (catData) setCategories([...new Set(catData.map((c: any) => c.category))])
+      if (cityData) {
+        const cityRows = (cityData ?? []) as CityRow[]
+        const uniqueCities = Array.from(
+          new Set(cityRows.map((c) => c.city).filter((v): v is string => Boolean(v)))
+        )
+        setCities(uniqueCities)
+      }
+      if (catData) {
+        const catRows = (catData ?? []) as CategoryRow[]
+        const uniqueCategories = Array.from(
+          new Set(catRows.map((c) => c.category).filter((v): v is string => Boolean(v)))
+        )
+        setCategories(uniqueCategories)
+      }
       setLoading(false)
     }
 
