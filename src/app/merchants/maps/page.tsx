@@ -1,0 +1,55 @@
+// src/app/merchants/map/page.tsx
+import dynamic from "next/dynamic";
+import { createClient } from "@supabase/supabase-js";
+import FilterBar from "@/components/filters/FilterBar";
+
+export const metadata = {
+  title: "Mapa de comercios | Foody Now",
+  description: "Explorá comercios por ciudad y categoría."
+};
+
+const LeafletMap = dynamic(() => import("@/components/map/LeafletMap"), {
+  ssr: false
+});
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
+export default async function Page({
+  searchParams
+}: {
+  searchParams: { [key: string]: string | string[] | undefined };
+}) {
+  // Catálogos para filtros (RSC)
+  const [{ data: cities }, { data: categories }] = await Promise.all([
+    supabase.from("cities").select("id, name, province").order("name", { ascending: true }),
+    supabase.from("categories").select("id, name").order("name", { ascending: true })
+  ]);
+
+  // Armo queryString para el endpoint del mapa
+  const cityId = typeof searchParams.cityId === "string" ? searchParams.cityId : undefined;
+  const categoryId = typeof searchParams.categoryId === "string" ? searchParams.categoryId : undefined;
+
+  const queryString = new URLSearchParams(
+    Object.fromEntries(
+      Object.entries({ cityId, categoryId }).filter(([, v]) => !!v)
+    ) as Record<string, string>
+  ).toString();
+
+  return (
+    <main className="mx-auto max-w-6xl px-4 py-8">
+      <h1 className="text-2xl font-semibold mb-4">Comercios en el mapa</h1>
+
+      <FilterBar
+        cities={cities ?? []}
+        categories={categories ?? []}
+        defaultCityId={cityId ? Number(cityId) : undefined}
+        defaultCategoryId={categoryId ? Number(categoryId) : undefined}
+      />
+
+      <LeafletMap queryString={queryString} />
+    </main>
+  );
+}
