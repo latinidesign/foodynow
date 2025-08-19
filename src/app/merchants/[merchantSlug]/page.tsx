@@ -7,9 +7,9 @@ export const revalidate = 60
 export default async function MerchantDetail({
   params,
 }: {
-  params: { merchantSlug: string }
+  params: Promise<{ merchantSlug: string }>
 }) {
-  const { merchantSlug } = params
+  const { merchantSlug } = await params
 
   const { data: merchant, error } = await supabase
     .from('merchants')

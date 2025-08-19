@@ -5,10 +5,11 @@ import { supabase } from '@/lib/supabaseClient'
 export default async function MerchantsPage({
   searchParams,
 }: {
-  searchParams: { city?: string | string[]; category?: string | string[] }
+  searchParams: Promise<Record<string, string | string[]>>
 }) {
-  const city = typeof searchParams?.city === 'string' ? searchParams.city : ''
-  const category = typeof searchParams?.category === 'string' ? searchParams.category : ''
+  const sp = await searchParams
+  const city = typeof sp?.city === 'string' ? sp.city : ''
+  const category = typeof sp?.category === 'string' ? sp.category : ''
 
   let query = supabase
     .from('merchants')
