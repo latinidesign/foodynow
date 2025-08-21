@@ -1,25 +1,21 @@
-// src/components/map/LeafletMap.tsx
 'use client';
 
-import dynamic from 'next/dynamic';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 
-// Importa tu mapa real, pero de forma dinámica y sin SSR.
-const LeafletMap = dynamic(() => import('./LeafletMap'), { ssr: false });
+// Fix de íconos por defecto de Leaflet en bundlers
+// Si TS se queja por .png, agrega un declarations.d.ts con:  declare module '*.png';
+import marker2x from 'leaflet/dist/images/marker-icon-2x.png';
+import marker from 'leaflet/dist/images/marker-icon.png';
+import shadow from 'leaflet/dist/images/marker-shadow.png';
 
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
-import "leaflet/dist/leaflet.css";
-import L from "leaflet";
-import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
-
-// Arreglo de iconos por defecto (webpack issue)
-import marker2x from "leaflet/dist/images/marker-icon-2x.png";
-import marker from "leaflet/dist/images/marker-icon.png";
-import shadow from "leaflet/dist/images/marker-shadow.png";
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl: marker2x.src,
-  iconUrl: marker.src,
-  shadowUrl: shadow.src
+  iconRetinaUrl: (marker2x as any).src ?? (marker2x as any),
+  iconUrl: (marker as any).src ?? (marker as any),
+  shadowUrl: (shadow as any).src ?? (shadow as any),
 });
 
 type MarkerItem = {
@@ -31,19 +27,20 @@ type MarkerItem = {
   rating: number | null;
 };
 
-export default function LeafletMap({
-  cityCenter = [-34.6037, -58.3816], // CABA por defecto
+export default function MapView({
+  cityCenter = [-34.6037, -58.3816] as [number, number], // CABA por defecto
   cityZoom = 12,
-  queryString = ""
+  queryString = '',
 }: {
   cityCenter?: [number, number];
   cityZoom?: number;
-  queryString?: string; // ?cityId=..&categoryId=..
+  queryString?: string;
 }) {
   const [items, setItems] = useState<MarkerItem[]>([]);
 
   useEffect(() => {
-    fetch(`/api/merchants${queryString ? `?${queryString}` : ""}`)
+    const url = `/api/merchants${queryString ? `?${queryString}` : ''}`;
+    fetch(url)
       .then((r) => r.json())
       .then((json) => setItems(json.items ?? []))
       .catch(console.error);
@@ -61,10 +58,10 @@ export default function LeafletMap({
         zoom={cityZoom}
         bounds={bounds ?? undefined}
         scrollWheelZoom
-        style={{ height: "100%", width: "100%" }}
+        style={{ height: '100%', width: '100%' }}
       >
         <TileLayer
-          attribution='&copy; OpenStreetMap contributors'
+          attribution="&copy; OpenStreetMap contributors"
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         {items.map((m) => {
@@ -76,10 +73,7 @@ export default function LeafletMap({
                   <div className="font-medium">{m.name}</div>
                   {m.rating != null && <div>⭐ {m.rating.toFixed(1)}</div>}
                   <div className="flex gap-2 mt-2">
-                    <Link
-                      href={`/commerce/${m.slug}`}
-                      className="text-sm underline"
-                    >
+                    <Link href={`/commerce/${m.slug}`} className="text-sm underline">
                       Ver perfil
                     </Link>
                     <a
