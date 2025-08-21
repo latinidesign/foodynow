@@ -33,7 +33,7 @@ export default async function Page({
     Object.fromEntries(
       Object.entries({ cityId, categoryId }).filter(([, v]) => !!v)
     ) as Record<string, string>
-  ).toString();
+  ).toString(); 
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-8">
