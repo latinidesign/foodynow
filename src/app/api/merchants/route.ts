@@ -9,26 +9,32 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
+// Helper: lee ambos nombres de query (cityId/city, categoryId/category)
+function readId(params: URLSearchParams, keys: string[]) {
+  for (const k of keys) {
+    const v = params.get(k);
+    if (v && /^\d+$/.test(v)) return Number(v);
+  }
+  return undefined;
+}
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-  const cityId = searchParams.get("cityId");
-  const categoryId = searchParams.get("categoryId");
+  const cityId = readId(searchParams, ["cityId", "city"]);
+  const categoryId = readId(searchParams, ["categoryId", "category"]);
   const limit = Number(searchParams.get("limit") ?? 500);
 
-  // Base query
+  // Base: merchants con coordenadas
   let query = supabase
     .from("merchants")
-    .select(`
-      id, name, slug, latitude, longitude, rating, city_id
-    `)
+    .select(`id, name, slug, latitude, longitude, rating, city_id`)
     .not("latitude", "is", null)
     .not("longitude", "is", null)
     .limit(limit);
 
-  // Por ciudad
-  if (cityId) query = query.eq("city_id", Number(cityId));
+  if (cityId) query = query.eq("city_id", cityId);
 
-  // Por categoría (N:M con join interno)
+  // Si hay categoría, hacemos join interno con N:M
   if (categoryId) {
     query = supabase
       .from("merchants")
@@ -36,12 +42,11 @@ export async function GET(req: Request) {
         id, name, slug, latitude, longitude, rating, city_id,
         merchant_categories!inner(category_id)
       `)
-      .eq("merchant_categories.category_id", Number(categoryId))
+      .eq("merchant_categories.category_id", categoryId)
       .not("latitude", "is", null)
       .not("longitude", "is", null)
       .limit(limit);
-
-    if (cityId) query = query.eq("city_id", Number(cityId));
+    if (cityId) query = query.eq("city_id", cityId);
   }
 
   const { data, error } = await query;

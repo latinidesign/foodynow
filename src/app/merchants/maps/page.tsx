@@ -1,7 +1,8 @@
 // src/app/merchants/maps/page.tsx
 import { createClient } from '@supabase/supabase-js';
 import FilterBar from '@/components/filters/FilterBar';
-import LeafletMap from '@/components/map/LeafletMap';
+import LeafletMap from '@/components/map/LeafletMapClient';
+
 
 export const metadata = {
   title: 'Mapa de comercios | Foody Now',

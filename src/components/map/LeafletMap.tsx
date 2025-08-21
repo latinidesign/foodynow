@@ -6,7 +6,6 @@ import dynamic from 'next/dynamic';
 // Importa tu mapa real, pero de forma dinámica y sin SSR.
 const LeafletMap = dynamic(() => import('./LeafletMap'), { ssr: false });
 
-
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
