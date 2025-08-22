@@ -7,10 +7,16 @@ export const metadata = {
   description: 'Explorá comercios por ciudad y categoría.',
 };
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { createClient } from '@supabase/supabase-js';
+
+const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+if (!url) throw new Error('Missing env: NEXT_PUBLIC_SUPABASE_URL');
+if (!anon) throw new Error('Missing env: NEXT_PUBLIC_SUPABASE_ANON_KEY');
+
+export const supabaseServer = createClient(url, anon);
+
 
 export default async function Page({ searchParams }: { searchParams: Record<string, string | string[] | undefined> }) {
   const [{ data: cities }, { data: categories }] = await Promise.all([

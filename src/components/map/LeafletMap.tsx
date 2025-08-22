@@ -27,6 +27,10 @@ type MarkerItem = {
   rating: number | null;
 };
 
+interface MerchantsApiResponse {
+  items?: MarkerItem[];
+}
+
 export default function MapView({
   cityCenter = [-34.6037, -58.3816] as [number, number], // CABA por defecto
   cityZoom = 12,
@@ -39,16 +43,28 @@ export default function MapView({
   const [items, setItems] = useState<MarkerItem[]>([]);
 
   useEffect(() => {
-    const url = `/api/merchants${queryString ? `?${queryString}` : ''}`;
-    fetch(url)
-      .then((r) => r.json())
-      .then((json) => setItems(json.items ?? []))
-      .catch(console.error);
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const res = await fetch(
+          `/api/merchants${queryString ? `?${queryString}` : ''}`
+        );
+        if (!res.ok) return;
+        const json: MerchantsApiResponse = await res.json();
+        if (!cancelled) setItems(json.items ?? []);
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    load();
+    return () => {
+      cancelled = true;
+    };
   }, [queryString]);
 
   const bounds = useMemo(() => {
     if (!items.length) return null;
-    return L.latLngBounds(items.map(i => L.latLng(i.lat, i.lng)));
+    return L.latLngBounds(items.map((i) => L.latLng(i.lat, i.lng)));
   }, [items]);
 
   return (
