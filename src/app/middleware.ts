@@ -1,35 +1,70 @@
 // middleware.ts
-import type { NextRequest } from 'next/server'
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/ssr"; // NUEVO
+import { Database } from "./types/supabase"; // tu tipo generado desde Supabase
 
-function getSub(host: string): string | null {
-  const [hostname] = host.split(':'); // quita el puerto
-  const mLocal = hostname.match(/^([^.]+)\.localhost$/);
-  if (mLocal) return mLocal[1];
-  const mProd = hostname.match(/^([^.]+)\.foodynow\.com\.ar$/);
-  if (mProd) return mProd[1];
-  const mPrev = hostname.match(/^([^.]+)\.[^.]+\.vercel\.app$/);
-  if (mPrev) return mPrev[1];
+function getSubdomain(host: string): string | null {
+  const [hostname] = host.split(":");
+
+  if (hostname.endsWith("localhost")) {
+    const match = hostname.match(/^([^.]+)\.localhost$/);
+    return match ? match[1] : null;
+  }
+
+  if (hostname.endsWith(".foodynow.com.ar")) {
+    const match = hostname.match(/^([^.]+)\.foodynow\.com\.ar$/);
+    return match ? match[1] : null;
+  }
+
+  if (hostname.endsWith(".vercel.app")) {
+    const match = hostname.match(/^([^.]+)\.[^.]+\.vercel\.app$/);
+    return match ? match[1] : null;
+  }
+
   return null;
 }
 
-export function middleware(req: NextRequest) {
-  const { pathname } = req.nextUrl;
-  const host = req.headers.get('host') || '';
-  const sub = getSub(host);
+export async function middleware(req: NextRequest) {
+  const host = req.headers.get("host") || "";
+  const pathname = req.nextUrl.pathname;
+  const subdomain = getSubdomain(host);
 
-  const skip = pathname.startsWith('/_next') || pathname.startsWith('/api') ||
-               pathname === '/favicon.ico' || pathname === '/robots.txt' || pathname === '/sitemap.xml';
-  if (skip || !sub) return NextResponse.next();
+  const isStaticAsset = pathname.startsWith("/_next")
+    || pathname.startsWith("/api")
+    || ["/favicon.ico", "/robots.txt", "/sitemap.xml"].includes(pathname);
 
-  const url = req.nextUrl.clone();
-  url.pathname = `/s/${sub}${pathname}`;
+  if (isStaticAsset || !subdomain) {
+    return NextResponse.next();
+  }
 
-  // 👉 importante: pasar el header al **request**
-  const reqHeaders = new Headers(req.headers);
-  reqHeaders.set('x-tenant', sub);
+  // ⚙️ Supabase SSR
+  const supabase = createClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY! // usa la Service Role para el middleware (solo para lectura segura)
+  );
 
-  return NextResponse.rewrite(url, { request: { headers: reqHeaders }});
+  const { data: merchant, error } = await supabase
+    .from("merchants")
+    .select("id, name")
+    .eq("subdomain", subdomain)
+    .single();
+
+  if (error || !merchant) {
+    const notFoundUrl = req.nextUrl.clone();
+    notFoundUrl.pathname = "/not-found";
+    return NextResponse.rewrite(notFoundUrl);
+  }
+
+  const res = NextResponse.next();
+  res.headers.set("x-merchant-id", merchant.id);
+  res.cookies.set("merchant_id", merchant.id, {
+    path: "/",
+    httpOnly: true,
+  });
+
+  return res;
 }
 
-export const config = { matcher: '/:path*' };
+export const config = {
+  matcher: "/((?!_next|api|favicon.ico|robots.txt|sitemap.xml).*)",
+};
