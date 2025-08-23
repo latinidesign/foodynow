@@ -1,51 +1,35 @@
-import { NextResponse } from 'next/server'
+// middleware.ts
 import type { NextRequest } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { NextResponse } from 'next/server'
 
-export async function middleware(req: NextRequest) {
-  const token = req.cookies.get('sb-access-token')?.value
-  const url = req.nextUrl.pathname
-
-  if (!token && url.startsWith('/dashboard')) {
-    return NextResponse.redirect(new URL('/auth/login', req.url))
-  }
-
-  if (token) {
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      { global: { headers: { Authorization: `Bearer ${token}` } } }
-    )
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user) {
-      const { data: profile } = await supabase
-        .from('users')
-        .select('role, plan')
-        .eq('id', user.id)
-        .single()
-
-      if (!profile) return NextResponse.redirect(new URL('/auth/login', req.url))
-
-      // Rol
-      if (url.startsWith('/dashboard/merchant') && profile.role !== 'merchant') {
-        return NextResponse.redirect(new URL('/dashboard/customer', req.url))
-      }
-
-      if (url.startsWith('/dashboard/customer') && profile.role !== 'customer') {
-        return NextResponse.redirect(new URL('/dashboard/merchant', req.url))
-      }
-
-      // Plan
-      if (url.startsWith('/premium') && profile.plan === 'free') {
-        return NextResponse.redirect(new URL('/upgrade', req.url))
-      }
-    }
-  }
-
-  return NextResponse.next()
+function getSub(host: string): string | null {
+  const [hostname] = host.split(':'); // quita el puerto
+  const mLocal = hostname.match(/^([^.]+)\.localhost$/);
+  if (mLocal) return mLocal[1];
+  const mProd = hostname.match(/^([^.]+)\.foodynow\.com\.ar$/);
+  if (mProd) return mProd[1];
+  const mPrev = hostname.match(/^([^.]+)\.[^.]+\.vercel\.app$/);
+  if (mPrev) return mPrev[1];
+  return null;
 }
 
-export const config = {
-  matcher: ['/dashboard/:path*', '/premium/:path*']
+export function middleware(req: NextRequest) {
+  const { pathname } = req.nextUrl;
+  const host = req.headers.get('host') || '';
+  const sub = getSub(host);
+
+  const skip = pathname.startsWith('/_next') || pathname.startsWith('/api') ||
+               pathname === '/favicon.ico' || pathname === '/robots.txt' || pathname === '/sitemap.xml';
+  if (skip || !sub) return NextResponse.next();
+
+  const url = req.nextUrl.clone();
+  url.pathname = `/s/${sub}${pathname}`;
+
+  // 👉 importante: pasar el header al **request**
+  const reqHeaders = new Headers(req.headers);
+  reqHeaders.set('x-tenant', sub);
+
+  return NextResponse.rewrite(url, { request: { headers: reqHeaders }});
 }
+
+export const config = { matcher: '/:path*' };
